@@ -1,5 +1,7 @@
 package com.deakin.ghosttransmission.Model;
 
+import androidx.annotation.NonNull;
+
 public class SMS {
 
     /**
@@ -19,6 +21,16 @@ public class SMS {
      */
     public SMS(String sms) {
         setMessage(sms);
+    }
+
+    /**
+     * Returns a String of data representing the SMS
+     * @return Data and Contents of the SMS
+     */
+    @NonNull
+    @Override
+    public String toString() {
+        return getMessage();
     }
 
     /**
