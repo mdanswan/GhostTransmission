@@ -38,7 +38,7 @@ public class SMSReader {
             do {
                 SMS s = new SMS();
                 for (int i = 0; i < c.getColumnCount(); i++)
-                    s.setMessage(s.getMessage() + c.getColumnName(i) + ": " + c.getString(i) + "\n");
+                    s.setContent(s.getContent() + c.getColumnName(i) + ": " + c.getString(i) + "\n");
                 smsArrayList.add(s);
             } while (c.moveToNext());
         } else {

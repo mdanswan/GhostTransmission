@@ -4,6 +4,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.app.Activity;
@@ -14,6 +16,7 @@ import android.os.Debug;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.deakin.ghosttransmission.Adapter.SMSAdapter;
 import com.deakin.ghosttransmission.Messaging.SMS.SMSReader;
 import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.R;
@@ -28,6 +31,8 @@ public class MainActivity extends AppCompatActivity {
      * Instance Variables
      */
     private Map<String, Integer> permissions = null; // permission to request
+
+    private RecyclerView smsRV; // sms recycler view
 
     /**
      * Constants
@@ -45,29 +50,32 @@ public class MainActivity extends AppCompatActivity {
         // request permissions required for application
         requestPermission(Manifest.permission.READ_SMS, REQUEST_CODE);
 
-        // create adaptor for main screen received sms
-
-        // create data structure as source for adapter
-
-        // set main recycler view adapter as the one above
-
+        // read sms messages from inbox
         SMSReader smsReader = new SMSReader(getContentResolver());
         ArrayList<SMS> texts = smsReader.ReadSMS();
-        for (int i = 0; i < 10; i++)
-            Log.d("SMS TO STRING", texts.get(i).toString());
+
+        // init sms recycler view
+        smsRV = findViewById(R.id.sms_recyclerview);
+
+        // set the layout manager for the sms recycler view (linear)
+        smsRV.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+
+        // create adapter for main screen received sms
+        SMSAdapter smsAdapter = new SMSAdapter(texts);
+
+        // set main recycler view adapter as the one above
+        smsRV.setAdapter(smsAdapter);
     }
 
     /**
      * Requests a single permission from the System. If the permission is allowed, then the permission is added to
-     * the permissions map, however, if declined, a message is displayed to the user
+     * the permissions map
      * @param permission the permission to request
      * @param requestCode the associated request code
      */
     public void requestPermission(String permission, final int requestCode) {
         if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, new String[]{permission}, requestCode);
-        else
-            Toast.makeText(getApplicationContext(), "Permission: " + permission + " not allowed", Toast.LENGTH_LONG).show();
     }
 
     /**

@@ -21,7 +21,7 @@ public class SMS {
      * @param sms message text
      */
     public SMS(String sms) {
-        setMessage(sms);
+        setContent(sms);
     }
 
     /**
@@ -31,17 +31,17 @@ public class SMS {
     @NonNull
     @Override
     public String toString() {
-        return getMessage();
+        return getContent();
     }
 
     /**
      * Getters and Setters
      */
-    public String getMessage() {
-        return message;
+    public String getContent() {
+        return content;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setContent(String content) {
+        this.content = content;
     }
 }
