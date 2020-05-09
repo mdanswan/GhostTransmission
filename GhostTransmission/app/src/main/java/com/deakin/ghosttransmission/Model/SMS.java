@@ -7,7 +7,8 @@ public class SMS {
     /**
      * Instance Variables
      */
-    private String message = null;
+    private String content = null;
+    private String from = null;
 
     /**
      * Default Constructor
