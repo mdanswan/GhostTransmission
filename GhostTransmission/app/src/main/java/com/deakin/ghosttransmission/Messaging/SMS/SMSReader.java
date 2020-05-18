@@ -37,8 +37,16 @@ public class SMSReader {
         if (c.moveToFirst()) {
             do {
                 SMS s = new SMS();
-                for (int i = 0; i < c.getColumnCount(); i++)
-                    s.setContent(s.getContent() + c.getColumnName(i) + ": " + c.getString(i) + "\n");
+                for (int i = 0; i < c.getColumnCount(); i++) {
+                    if (c.getColumnName(i).equals("address"))
+                        s.setPhoneno(c.getString(i));
+                    if (c.getColumnName(i).equals("date_sent"))
+                        s.setTimestamp(c.getLong(i));
+                    if (c.getColumnName(i).equals("body"))
+                        s.setBody(c.getString(i));
+                    if (c.getColumnName(i).equals("read"))
+                        s.setRead(c.getString(i));
+                }
                 smsArrayList.add(s);
             } while (c.moveToNext());
         } else {

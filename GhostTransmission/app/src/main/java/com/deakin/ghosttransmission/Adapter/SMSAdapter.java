@@ -18,7 +18,10 @@ class SMSViewHolder extends RecyclerView.ViewHolder {
     /**
      * Instance Variables
      */
-    private TextView contentTV;
+    private TextView phonenoTV;
+    private TextView timestampTV;
+    private TextView bodyTV;
+    private TextView readTV;
 
     /**
      * Constructor
@@ -28,18 +31,45 @@ class SMSViewHolder extends RecyclerView.ViewHolder {
     public SMSViewHolder(@NonNull View view) {
         super(view);
 
-        setContentTV((TextView) view.findViewById(R.id.sms_content));
+        setPhonenoTV((TextView) view.findViewById(R.id.phoneno_textview));
+        setTimestampTV((TextView) view.findViewById(R.id.timestamp_textview));
+        setBodyTV((TextView) view.findViewById(R.id.body_textview));
+        setReadTV((TextView) view.findViewById(R.id.read_textview));
     }
 
     /**
      * Getters and Setters
      */
-    public TextView getContentTV() {
-        return contentTV;
+    public TextView getPhonenoTV() {
+        return phonenoTV;
     }
 
-    public void setContentTV(TextView contentTV) {
-        this.contentTV = contentTV;
+    public void setPhonenoTV(TextView phonenoTV) {
+        this.phonenoTV = phonenoTV;
+    }
+
+    public TextView getTimestampTV() {
+        return timestampTV;
+    }
+
+    public void setTimestampTV(TextView timestampTV) {
+        this.timestampTV = timestampTV;
+    }
+
+    public TextView getBodyTV() {
+        return bodyTV;
+    }
+
+    public void setBodyTV(TextView bodyTV) {
+        this.bodyTV = bodyTV;
+    }
+
+    public TextView getReadTV() {
+        return readTV;
+    }
+
+    public void setReadTV(TextView readTV) {
+        this.readTV = readTV;
     }
 };
 
@@ -69,8 +99,15 @@ public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
         SMS sms = getSms().get(position);
 
         // set the content of each view in the SMS View Layout
-        TextView contentTV = holder.getContentTV();
-        contentTV.setText(sms.getContent());
+        TextView phonenoTV = holder.getPhonenoTV();
+        TextView timestampTV = holder.getTimestampTV();
+        TextView bodyTV = holder.getBodyTV();
+        TextView readTV = holder.getReadTV();
+
+        phonenoTV.setText(sms.getPhoneno());
+        timestampTV.setText(sms.getTimestamp().toString());
+        bodyTV.setText(sms.getBody());
+        readTV.setText(sms.getRead());
     }
 
     @Override
