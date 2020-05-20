@@ -19,8 +19,10 @@ import android.widget.Toast;
 import com.deakin.ghosttransmission.Adapter.SMSAdapter;
 import com.deakin.ghosttransmission.Messaging.SMS.SMSReader;
 import com.deakin.ghosttransmission.Model.SMS;
+import com.deakin.ghosttransmission.Model.SMSURI;
 import com.deakin.ghosttransmission.R;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +34,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private Map<String, Integer> permissions = null; // permission to request
 
-    private RecyclerView smsRV; // sms recycler view
+    private RecyclerView smsRV; // sms inbox / sent recycler view
 
     /**
      * Constants
@@ -52,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
 
         // read sms messages from inbox
         SMSReader smsReader = new SMSReader(getContentResolver());
-        ArrayList<SMS> texts = smsReader.ReadSMS();
+        ArrayList<SMS> smsList = smsReader.ReadSMS(SMSURI.INBOX_URI, SMSURI.SENT_URI);
 
         // init sms recycler view
         smsRV = findViewById(R.id.sms_recyclerview);
@@ -61,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         smsRV.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
         // create adapter for main screen received sms
-        SMSAdapter smsAdapter = new SMSAdapter(texts);
+        SMSAdapter smsAdapter = new SMSAdapter(smsList);
 
         // set main recycler view adapter as the one above
         smsRV.setAdapter(smsAdapter);

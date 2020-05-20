@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.deakin.ghosttransmission.Model.SMS;
+import com.deakin.ghosttransmission.Model.SMSURI;
 
 import java.util.ArrayList;
 
@@ -14,7 +15,8 @@ public class SMSReader {
     /**
      * Constants
      */
-    private final String URI = "content://sms/inbox";
+    private final String[] SMS_COLS = new String[]{"address", "date", "body", "read"};
+    private final String SMS_SORT_ORDER = "date DESC LIMIT 100";
 
     /**
      * Instance Variables
@@ -22,7 +24,7 @@ public class SMSReader {
     private ContentResolver contentResolver = null;
 
     /**
-     * Default Constructor
+     * Constructor
      *
      * @param contentResolver Content Resolver
      */
@@ -31,30 +33,81 @@ public class SMSReader {
         setContentResolver(contentResolver);
     }
 
-    public ArrayList<SMS> ReadSMS() {
-        Cursor c = getContentResolver().query(Uri.parse(URI), null, null, null, null);
-        ArrayList<SMS> smsArrayList = new ArrayList<>();
-        if (c.moveToFirst()) {
-            do {
-                SMS s = new SMS();
-                for (int i = 0; i < c.getColumnCount(); i++) {
-                    if (c.getColumnName(i).equals("address"))
-                        s.setPhoneno(c.getString(i));
-                    if (c.getColumnName(i).equals("date_sent"))
-                        s.setTimestamp(c.getLong(i));
-                    if (c.getColumnName(i).equals("body"))
-                        s.setBody(c.getString(i));
-                    if (c.getColumnName(i).equals("read"))
-                        s.setRead(c.getString(i));
-                }
-                smsArrayList.add(s);
-            } while (c.moveToNext());
-        } else {
-            Log.d("SMS Reader", "No messages available");
+    public ArrayList<SMS> ReadSMS(SMSURI... smsuri) {
+
+        ArrayList<SMS> smsList = new ArrayList<>(); // list to hold the resulting SMS messages
+        Cursor[] cursors = new Cursor[smsuri.length];
+
+        // query content providers using the specified URIs
+        for (int i = 0; i < cursors.length; i++) {
+            Cursor c = getContentResolver().query(Uri.parse(
+                    smsuri[i].getUri()),
+                    SMS_COLS,
+                    null,
+                    null,
+                    SMS_SORT_ORDER);
+            cursors[i] = c;
         }
-        if (!c.isClosed())
-            c.close();
-        return smsArrayList;
+
+        // move all cursors to their first element, voiding all 'empty' Cursors
+        for (int i = 0; i < cursors.length; i++) {
+            if (!cursors[i].moveToFirst())
+                cursors[i] = null;
+        }
+
+        // traverse all cursors, adding SMS instances in 'descending' order of date_sent
+        for (int i = 0; i < getMaxCursorRows(cursors); i++) {
+
+            Cursor cHigh = null;
+
+            for (Cursor c : cursors) {
+                if (c == null)
+                    continue;
+
+                if (cHigh == null)
+                    cHigh = c;
+                else if (c.getLong(c.getColumnIndex("date")) > cHigh.getLong(cHigh.getColumnIndex("date"))) {
+                    Log.d("SENT", "SENT");
+                    cHigh = c;
+                }
+            }
+
+            // create a new SMS instance with the relevant SMS data
+            SMS s = new SMS();
+            s.setPhoneno(cHigh.getString(cHigh.getColumnIndex("address")));
+            s.setTimestamp(cHigh.getLong(cHigh.getColumnIndex("date")));
+            s.setBody(cHigh.getString(cHigh.getColumnIndex("body")));
+            s.setRead(cHigh.getString(cHigh.getColumnIndex("read")));
+
+            // add the new SMS instance to the SMS collection
+            smsList.add(i, s);
+
+            // move the High cursor to the next position, and void if no remaining items
+            if (!cHigh.moveToNext())
+                cHigh = null;
+        }
+
+        // close all active cursors
+        for (Cursor c : cursors)
+            if (c != null)
+                if (!c.isClosed())
+                    c.close();
+
+        return smsList;
+    }
+
+    /**
+     * Utility method to find the max rows of a Cursor, from a given Cursor Array
+     *
+     * @param cursors Cursor Array
+     * @return Max Rows in a Cursor
+     */
+    private int getMaxCursorRows(Cursor[] cursors) {
+        int maxRows = -1;
+        for (int i = 0; i < cursors.length; i++)
+            if (cursors[i].getCount() > maxRows)
+                maxRows = cursors[i].getCount();
+        return maxRows;
     }
 
     /**
