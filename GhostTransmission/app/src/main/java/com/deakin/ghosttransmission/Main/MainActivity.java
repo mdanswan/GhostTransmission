@@ -11,12 +11,19 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Debug;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.deakin.ghosttransmission.Adapter.SMSAdapter;
+import com.deakin.ghosttransmission.Ghosting.GyroScreen;
+import com.deakin.ghosttransmission.Listener.GyroscopeListener;
 import com.deakin.ghosttransmission.Messaging.SMS.SMSReader;
 import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.Model.SMSURI;
@@ -27,14 +34,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements GyroscopeListener {
 
     /**
      * Instance Variables
      */
+    // DATA
     private Map<String, Integer> permissions = null; // permission to request
 
+    private float degrees = 0;
+    private final float NORM = 1000000;
+    private float BASE = 0;
+    private float SENSITIVITY = 0;
+
+    // UI COMPONENTS
     private RecyclerView smsRV; // sms inbox / sent recycler view
+    private View gyroScreenView = null;
 
     /**
      * Constants
@@ -45,6 +60,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        InitializeUI();
+
+        // init GryoScreen
+        SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        GyroScreen gyroScreen = new GyroScreen(sensorManager, this);
+        gyroScreen.AddGyroEventListener();
+    }
+
+    public void InitializeUI() {
 
         // init permissions arrays
         permissions = new HashMap<>();
@@ -67,12 +92,23 @@ public class MainActivity extends AppCompatActivity {
 
         // set main recycler view adapter as the one above
         smsRV.setAdapter(smsAdapter);
+
+        // init BASE constant (cannot change past this point)
+        BASE = getWindowWidth();
+
+        // init SENSITIVITY constant
+        SENSITIVITY = (360 / BASE) * 45;
+
+        // init gryo screen
+        gyroScreenView = findViewById(R.id.gyroscreen_progressbar);
+        gyroScreenView.setTranslationX(getWindowWidth());
     }
 
     /**
      * Requests a single permission from the System. If the permission is allowed, then the permission is added to
      * the permissions map
-     * @param permission the permission to request
+     *
+     * @param permission  the permission to request
      * @param requestCode the associated request code
      */
     public void requestPermission(String permission, final int requestCode) {
@@ -81,9 +117,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
+     * Retrieves the Width of the current Window
+     *
+     * @return Width of the Window
+     */
+    public int getWindowWidth() {
+        DisplayMetrics dm = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(dm);
+        return dm.widthPixels;
+    }
+
+    /**
      * Processes the results of Permission Requests. Permissions are replaced / added as per each permission request.
-     * @param requestCode the associated permission request code
-     * @param permissions the permissions requested
+     *
+     * @param requestCode  the associated permission request code
+     * @param permissions  the permissions requested
      * @param grantResults the results of the permissions request
      */
     @Override
@@ -99,6 +147,27 @@ public class MainActivity extends AppCompatActivity {
             else
                 getPermissions().put(permissions[i], grantResults[i]);
         }
+    }
+
+    /**
+     * Gyroscope Listener implementation
+     *
+     * @param x rate of change in x
+     * @param y rate of change in y
+     * @param z rate of change in z
+     */
+    @Override
+    public void onGyroChange(float x, float y, float z) {
+
+        degrees += y * (10000.0 / NORM);
+        float newTransX = BASE - degrees * SENSITIVITY;
+
+        if (newTransX >= 5f && newTransX <= BASE - 5f)
+            gyroScreenView.setTranslationX(newTransX);
+        else if (newTransX <= 5f && gyroScreenView.getTranslationX() != 0)
+            gyroScreenView.setTranslationX(0);
+        else if (newTransX >= BASE - 5f && gyroScreenView.getTranslationX() != BASE)
+            gyroScreenView.setTranslationX(BASE);
     }
 
     /**

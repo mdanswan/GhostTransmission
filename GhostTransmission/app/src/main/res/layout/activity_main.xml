@@ -9,6 +9,12 @@
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/sms_recyclerview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent" />
+
+    <View
+        android:id="@+id/gyroscreen_progressbar"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/gyro_screen" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
