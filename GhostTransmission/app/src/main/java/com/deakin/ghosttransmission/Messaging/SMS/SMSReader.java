@@ -9,6 +9,9 @@ import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.Model.SMSURI;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SMSReader {
 
@@ -33,67 +36,74 @@ public class SMSReader {
         setContentResolver(contentResolver);
     }
 
-    public ArrayList<SMS> ReadSMS(SMSURI... smsuri) {
+    public ArrayList<Conversation> readSMS(SMSURI from, SMSURI to) {
 
-        ArrayList<SMS> smsList = new ArrayList<>(); // list to hold the resulting SMS messages
-        Cursor[] cursors = new Cursor[smsuri.length];
+        Map<String, ArrayList<SMS>> fromSmsListAsConversation = readSmsAsConversation(from);
+        Map<String, ArrayList<SMS>> toSmsListAsConversation = readSmsAsConversation(to);
 
-        // query content providers using the specified URIs
-        for (int i = 0; i < cursors.length; i++) {
-            Cursor c = getContentResolver().query(Uri.parse(
-                    smsuri[i].getUri()),
-                    SMS_COLS,
-                    null,
-                    null,
-                    SMS_SORT_ORDER);
-            cursors[i] = c;
-        }
+        return mergeConversations(fromSmsListAsConversation, toSmsListAsConversation);
+    }
 
-        // move all cursors to their first element, voiding all 'empty' Cursors
-        for (int i = 0; i < cursors.length; i++) {
-            if (!cursors[i].moveToFirst())
-                cursors[i] = null;
-        }
+    private Map<String, ArrayList<SMS>> readSmsAsConversation(SMSURI smsuri) {
+        Map<String, ArrayList<SMS>> conversationFromList = new HashMap<>();
 
-        // traverse all cursors, adding SMS instances in 'descending' order of date_sent
-        for (int i = 0; i < getMaxCursorRows(cursors); i++) {
+        Cursor c = getContentResolver().query(Uri.parse(
+                smsuri.getUri()),
+                SMS_COLS,
+                "",
+                null,
+                SMS_SORT_ORDER);
 
-            Cursor cHigh = null;
+        if (!c.moveToFirst())
+            return conversationFromList;
 
-            for (Cursor c : cursors) {
-                if (c == null)
-                    continue;
+        do {
+            final SMS s = new SMS();
+            s.setPhoneno(c.getString(c.getColumnIndex("address")));
+            s.setTimestamp(c.getLong(c.getColumnIndex("date")));
+            s.setBody(c.getString(c.getColumnIndex("body")));
+            s.setRead(c.getString(c.getColumnIndex("read")));
 
-                if (cHigh == null)
-                    cHigh = c;
-                else if (c.getLong(c.getColumnIndex("date")) > cHigh.getLong(cHigh.getColumnIndex("date"))) {
-                    Log.d("SENT", "SENT");
-                    cHigh = c;
-                }
+            // check if the new SMS is part of one of the already constructed Conversations
+            if (conversationFromList.containsKey(s.getPhoneno())) {
+                ArrayList<SMS> smsList = conversationFromList.get(s.getPhoneno());
+                smsList.add(smsList.size(), s);
+            } else // if the Conversations is not present, create a new one and append the new SMS instance
+                conversationFromList.put(s.getPhoneno(), new ArrayList<SMS>(Collections.singletonList(s)));
+        } while (c.moveToNext());
+
+        c.close();
+
+        return conversationFromList;
+    }
+
+    private ArrayList<Conversation> mergeConversations(Map<String, ArrayList<SMS>> fromSmsList, Map<String, ArrayList<SMS>> toSmsList) {
+
+        ArrayList<Conversation> conversations = new ArrayList<>();
+
+        Object[] fromKeys = fromSmsList.keySet().toArray();
+        Object[] toKeys = toSmsList.keySet().toArray();
+
+        int i = 0;
+        while (fromSmsList.size() != 0) {
+            Conversation c = new Conversation();
+            c.setFromSmsList(fromSmsList.get(fromKeys[i]));
+            fromSmsList.remove(fromKeys[i]);
+            if (toSmsList.containsKey(fromKeys[i])) {
+                c.setToSmsList(toSmsList.get(fromKeys[i]));
+                toSmsList.remove(fromKeys[i]);
             }
-
-            // create a new SMS instance with the relevant SMS data
-            SMS s = new SMS();
-            s.setPhoneno(cHigh.getString(cHigh.getColumnIndex("address")));
-            s.setTimestamp(cHigh.getLong(cHigh.getColumnIndex("date")));
-            s.setBody(cHigh.getString(cHigh.getColumnIndex("body")));
-            s.setRead(cHigh.getString(cHigh.getColumnIndex("read")));
-
-            // add the new SMS instance to the SMS collection
-            smsList.add(i, s);
-
-            // move the High cursor to the next position, and void if no remaining items
-            if (!cHigh.moveToNext())
-                cHigh = null;
+            conversations.add(c);
+            i++;
         }
 
-        // close all active cursors
-        for (Cursor c : cursors)
-            if (c != null)
-                if (!c.isClosed())
-                    c.close();
+        for (String sms : toSmsList.keySet()) {
+            Conversation c = new Conversation();
+            c.setToSmsList(toSmsList.get(sms));
+            conversations.add(c);
+        }
 
-        return smsList;
+        return conversations;
     }
 
     /**

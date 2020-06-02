@@ -24,6 +24,7 @@ import android.widget.Toast;
 import com.deakin.ghosttransmission.Adapter.SMSAdapter;
 import com.deakin.ghosttransmission.Ghosting.GyroScreen;
 import com.deakin.ghosttransmission.Listener.GyroscopeListener;
+import com.deakin.ghosttransmission.Messaging.SMS.Conversation;
 import com.deakin.ghosttransmission.Messaging.SMS.SMSReader;
 import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.Model.SMSURI;
@@ -79,29 +80,29 @@ public class MainActivity extends AppCompatActivity implements GyroscopeListener
 
         // read sms messages from inbox
         SMSReader smsReader = new SMSReader(getContentResolver());
-        ArrayList<SMS> smsList = smsReader.ReadSMS(SMSURI.INBOX_URI, SMSURI.SENT_URI);
+        ArrayList<Conversation> smsList = smsReader.readSMS(SMSURI.INBOX_URI, SMSURI.SENT_URI);
 
-        // init sms recycler view
-        smsRV = findViewById(R.id.sms_recyclerview);
-
-        // set the layout manager for the sms recycler view (linear)
-        smsRV.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
-
-        // create adapter for main screen received sms
-        SMSAdapter smsAdapter = new SMSAdapter(smsList);
-
-        // set main recycler view adapter as the one above
-        smsRV.setAdapter(smsAdapter);
-
-        // init BASE constant (cannot change past this point)
-        BASE = getWindowWidth();
-
-        // init SENSITIVITY constant
-        SENSITIVITY = (360 / BASE) * 45;
-
-        // init gryo screen
-        gyroScreenView = findViewById(R.id.gyroscreen_progressbar);
-        gyroScreenView.setTranslationX(getWindowWidth());
+//        // init sms recycler view
+//        smsRV = findViewById(R.id.sms_recyclerview);
+//
+//        // set the layout manager for the sms recycler view (linear)
+//        smsRV.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
+//
+//        // create adapter for main screen received sms
+//        SMSAdapter smsAdapter = new SMSAdapter(smsList);
+//
+//        // set main recycler view adapter as the one above
+//        smsRV.setAdapter(smsAdapter);
+//
+//        // init BASE constant (cannot change past this point)
+//        BASE = getWindowWidth();
+//
+//        // init SENSITIVITY constant
+//        SENSITIVITY = (360 / BASE) * 45;
+//
+//        // init gryo screen
+//        gyroScreenView = findViewById(R.id.gyroscreen_progressbar);
+//        gyroScreenView.setTranslationX(getWindowWidth());
     }
 
     /**
