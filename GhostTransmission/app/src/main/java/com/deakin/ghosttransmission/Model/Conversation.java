@@ -1,5 +1,7 @@
-package com.deakin.ghosttransmission.Messaging.SMS;
+package com.deakin.ghosttransmission.Model;
 
+import com.deakin.ghosttransmission.Controller.ConversationController;
+import com.deakin.ghosttransmission.Database.SQLiteDatabaseManager;
 import com.deakin.ghosttransmission.Model.SMS;
 
 import java.time.LocalDateTime;
@@ -11,6 +13,7 @@ public class Conversation {
      * Instance Variables
      */
     private String fromAddress = null;
+    private String identity = null;
     private LocalDateTime lastUpdated = null;
 
     private ArrayList<SMS> fromSmsList = null;
@@ -64,6 +67,14 @@ public class Conversation {
 
     public void setFromAddress(String fromAddress) {
         this.fromAddress = fromAddress;
+    }
+
+    public String getIdentity() {
+        return identity;
+    }
+
+    public void setIdentity(String identity) {
+        this.identity = identity;
     }
 
     public LocalDateTime getLastUpdated() {

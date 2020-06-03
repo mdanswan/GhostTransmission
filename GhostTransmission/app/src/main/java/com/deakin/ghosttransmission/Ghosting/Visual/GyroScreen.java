@@ -1,4 +1,4 @@
-package com.deakin.ghosttransmission.Ghosting;
+package com.deakin.ghosttransmission.Ghosting.Visual;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -13,11 +13,22 @@ import java.math.BigDecimal;
 public class GyroScreen {
 
     /**
+     * Constants
+     */
+    float RAD_TO_DEG = 57.2958f;
+
+    /**
      * Instance Variables
      */
     private SensorManager sensorManager = null;
     private GyroscopeListener gyroscopeListener = null;
 
+    /**
+     * Constructor
+     *
+     * @param sensorManager SensorManager instance
+     * @param gyroscopeListener Gyroscope Listener for Updating UI
+     */
     public GyroScreen(SensorManager sensorManager, GyroscopeListener gyroscopeListener) {
         setSensorManager(sensorManager);
         setGyroscopeListener(gyroscopeListener);
@@ -27,10 +38,12 @@ public class GyroScreen {
         SensorEventListener gyroEventListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {
+                // The new values of x, y, and z are converted from Radians to Degrees. This means the
+                // input is the Rate of Change in Degrees/Second instead of the Rate of Change in Radians/Second
                 getGyroscopeListener().onGyroChange(
-                        event.values[0] * 57.2958f,
-                        event.values[1] * 57.2958f,
-                        event.values[2] * 57.2958f);
+                        event.values[0] * RAD_TO_DEG,
+                        event.values[1] * RAD_TO_DEG,
+                        event.values[2] * RAD_TO_DEG);
             }
 
             @Override

@@ -4,12 +4,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".Main.MainActivity">
+    tools:context=".Main.HomeActivity"
+    android:background="@color/colorBackground">
 
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/sms_recyclerview"
+        android:id="@+id/conversation_identity_recyclerview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:paddingTop="5dp"/>
 
     <View
         android:id="@+id/gyroscreen_progressbar"

@@ -3,8 +3,10 @@ package com.deakin.ghosttransmission.Messaging.SMS;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.util.Log;
+import android.nfc.tech.Ndef;
 
+import com.deakin.ghosttransmission.Model.Conversation;
+import com.deakin.ghosttransmission.Model.ConversationList;
 import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.Model.SMSURI;
 
@@ -19,7 +21,9 @@ public class SMSReader {
      * Constants
      */
     private final String[] SMS_COLS = new String[]{"address", "date", "body", "read"};
-    private final String SMS_SORT_ORDER = "date DESC LIMIT 100";
+    private final int DEFAULT_LIM = 100;
+    private final String SMS_SORT_ORDER = "date DESC" + " LIMIT " + DEFAULT_LIM;
+    private final int MAX_LIM = Integer.MAX_VALUE;
 
     /**
      * Instance Variables
@@ -36,7 +40,14 @@ public class SMSReader {
         setContentResolver(contentResolver);
     }
 
-    public ArrayList<Conversation> readSMS(SMSURI from, SMSURI to) {
+    /**
+     * Reads both sides of a Conversation (from and to)
+     *
+     * @param from from SMSURI
+     * @param to   to SMSURI
+     * @return list of Conversations
+     */
+    public ConversationList readSMS(SMSURI from, SMSURI to) {
 
         Map<String, ArrayList<SMS>> fromSmsListAsConversation = readSmsAsConversation(from);
         Map<String, ArrayList<SMS>> toSmsListAsConversation = readSmsAsConversation(to);
@@ -44,6 +55,28 @@ public class SMSReader {
         return mergeConversations(fromSmsListAsConversation, toSmsListAsConversation);
     }
 
+    /**
+     * Reads a both sides of a specific Conversation
+     *
+     * @param from    from SMSURI
+     * @param to      to SMSURI
+     * @param address address of from participant
+     * @param limit   limit the number of messages returned (<1 is interpreted as all messages)
+     * @return conversation between from and to participants
+     */
+    public Conversation readSMS(SMSURI from, SMSURI to, String address, int limit) {
+        Conversation c = new Conversation();
+        c.setFromSmsList(readSmsListWithParams(from, address, limit));
+        c.setToSmsList(readSmsListWithParams(to, address, limit));
+        return c;
+    }
+
+    /**
+     * Reads one side of a Conversation (from or to) in the form of a Conversation
+     *
+     * @param smsuri from or to SMSURI
+     * @return map of address, messages
+     */
     private Map<String, ArrayList<SMS>> readSmsAsConversation(SMSURI smsuri) {
         Map<String, ArrayList<SMS>> conversationFromList = new HashMap<>();
 
@@ -69,7 +102,7 @@ public class SMSReader {
                 ArrayList<SMS> smsList = conversationFromList.get(s.getPhoneno());
                 smsList.add(smsList.size(), s);
             } else // if the Conversations is not present, create a new one and append the new SMS instance
-                conversationFromList.put(s.getPhoneno(), new ArrayList<SMS>(Collections.singletonList(s)));
+                conversationFromList.put(s.getPhoneno(), new ArrayList<>(Collections.singletonList(s)));
         } while (c.moveToNext());
 
         c.close();
@@ -77,9 +110,55 @@ public class SMSReader {
         return conversationFromList;
     }
 
-    private ArrayList<Conversation> mergeConversations(Map<String, ArrayList<SMS>> fromSmsList, Map<String, ArrayList<SMS>> toSmsList) {
+    /**
+     * Reads one side (from or to) of a Conversation
+     *
+     * @param smsuri  from or To SMSURI
+     * @param address address of the From participant
+     * @param limit   limit of the number of rows to retrieve
+     * @return a list of SMS instances
+     */
+    private ArrayList<SMS> readSmsListWithParams(SMSURI smsuri, String address, int limit) {
+        ArrayList<SMS> smsList = new ArrayList<>();
 
-        ArrayList<Conversation> conversations = new ArrayList<>();
+        // check if the given value is zero or negative, if so, replace with integer maximum
+        if (limit < 1)
+            limit = MAX_LIM;
+
+        Cursor c = getContentResolver().query(Uri.parse(
+                smsuri.getUri()),
+                SMS_COLS,
+                "WHERE address = '?'",
+                new String[]{address},
+                SMS_SORT_ORDER + " limit " + limit);
+
+        if (!c.moveToFirst())
+            return smsList;
+
+        do {
+            final SMS s = new SMS();
+            s.setPhoneno(c.getString(c.getColumnIndex("address")));
+            s.setTimestamp(c.getLong(c.getColumnIndex("date")));
+            s.setBody(c.getString(c.getColumnIndex("body")));
+            s.setRead(c.getString(c.getColumnIndex("read")));
+            smsList.add(s);
+        } while (c.moveToNext());
+
+        c.close();
+
+        return smsList;
+    }
+
+    /**
+     * Merges the two given sides of a Conversation (from and to)
+     *
+     * @param fromSmsList from SMS list
+     * @param toSmsList   to SMS list
+     * @return list of Conversations
+     */
+    private ConversationList mergeConversations(Map<String, ArrayList<SMS>> fromSmsList, Map<String, ArrayList<SMS>> toSmsList) {
+
+        ConversationList conversations = new ConversationList();
 
         Object[] fromKeys = fromSmsList.keySet().toArray();
         Object[] toKeys = toSmsList.keySet().toArray();
@@ -88,6 +167,9 @@ public class SMSReader {
         while (fromSmsList.size() != 0) {
             Conversation c = new Conversation();
             c.setFromSmsList(fromSmsList.get(fromKeys[i]));
+            String address = (String) fromKeys[i];
+            c.setFromAddress(address);
+            c.setIdentity(address);
             fromSmsList.remove(fromKeys[i]);
             if (toSmsList.containsKey(fromKeys[i])) {
                 c.setToSmsList(toSmsList.get(fromKeys[i]));
@@ -100,6 +182,8 @@ public class SMSReader {
         for (String sms : toSmsList.keySet()) {
             Conversation c = new Conversation();
             c.setToSmsList(toSmsList.get(sms));
+            c.setFromAddress(sms);
+            c.setIdentity(sms);
             conversations.add(c);
         }
 

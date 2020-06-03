@@ -78,10 +78,10 @@ public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
     /**
      * Instance Variables
      */
-    private ArrayList<SMS> sms = null;
+    private ArrayList<SMS> smsList = null;
 
-    public SMSAdapter(@NonNull ArrayList<SMS> sms) {
-        setSms(sms);
+    public SMSAdapter(@NonNull ArrayList<SMS> smsList) {
+        setSmsList(smsList);
     }
 
     @NonNull
@@ -96,7 +96,7 @@ public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
     public void onBindViewHolder(@NonNull SMSViewHolder holder, int position) {
 
         // get the current SMS model from the sms dataset
-        SMS sms = getSms().get(position);
+        SMS sms = getSmsList().get(position);
 
         // set the content of each view in the SMS View Layout
         TextView phonenoTV = holder.getPhonenoTV();
@@ -112,17 +112,17 @@ public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
 
     @Override
     public int getItemCount() {
-        return getSms().size();
+        return getSmsList().size();
     }
 
     /**
      * Getters and Setters
      */
-    public ArrayList<SMS> getSms() {
-        return sms;
+    public ArrayList<SMS> getSmsList() {
+        return smsList;
     }
 
-    public void setSms(ArrayList<SMS> sms) {
-        this.sms = sms;
+    public void setSmsList(ArrayList<SMS> smsList) {
+        this.smsList = smsList;
     }
 }
