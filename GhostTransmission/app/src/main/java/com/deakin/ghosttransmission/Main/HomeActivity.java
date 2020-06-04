@@ -1,6 +1,7 @@
 package com.deakin.ghosttransmission.Main;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -13,6 +14,7 @@ import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -30,6 +32,7 @@ import com.deakin.ghosttransmission.R;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 public class HomeActivity extends AppCompatActivity implements GyroscopeListener, ViewListener {
 
@@ -38,9 +41,11 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
      */
     // PERMISSIONS
     private final int REQUEST_CODE = 1000; // permission request code
+    private final int CONV_ACTIV_REQUEST_CODE = 2000; // conversation activity request code
 
     // GYRO SCREEN
     private final float NORM = 1000000; // 1 million microseconds to 1 second
+    private final float RANGE = 5; // number of pixels before snapping the GyroScreen to the closest edge
 
     /**
      * Instance Variables
@@ -57,8 +62,14 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
     private RecyclerView conversationIdentityRV; // conversation identity Recycler View
     private View gyroScreenView = null; // gyro screen cover
 
+    // SMS MANAGEMENT
+    private SMSManager smsManager = null; // sms manager used to execute sms related tasks
+
     // CONTROLLERS
     private ConversationController conversationController = null; // central point of communication between Conversation and Database
+
+    // ADAPTERS
+    private IdentityAdapter identityAdapter = null; // identity adapter for identity recycler view
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,10 +80,10 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         permissions = new HashMap<>();
 
         // request permissions required for application
-        int result = requestPermission(Manifest.permission.READ_SMS, REQUEST_CODE);
+        int read_send_sms_res = requestPermission(new String[]{Manifest.permission.READ_SMS, Manifest.permission.SEND_SMS}, REQUEST_CODE);
 
         // initialize activity
-        if (result > 0)
+        if (read_send_sms_res > 0)
             initializeActivity();
     }
 
@@ -84,12 +95,9 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         // read identity list
         ConversationList cv = new ConversationList(new ArrayList<Conversation>(), getConversationController());
         SMSManager smsManager = new SMSManager(getContentResolver());
+        setSmsManager(smsManager);
         ArrayList<String> addresses = smsManager.getSMSAddressList(SMSURI.INBOX_URI, SMSURI.SENT_URI);
         ArrayList<String> identities = cv.retrieveIdentities(addresses);
-
-//        ConversationList conversationList = smsManager.getConversations();
-//        conversationList.setConversationController(getConversationController());
-//        conversationList.updateIdentities();
 
         // init conversation identity recycler view
         conversationIdentityRV = findViewById(R.id.conversation_identity_recyclerview);
@@ -97,8 +105,8 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         // set the layout manager for the conversation identity recycler view (linear)
         conversationIdentityRV.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
-        // create adapter for identities
-        IdentityAdapter identityAdapter = new IdentityAdapter(identities, this);
+        // set adapter for identities
+        setIdentityAdapter(new IdentityAdapter(identities, this));
 
         // set main recycler view adapter as the one above
         conversationIdentityRV.setAdapter(identityAdapter);
@@ -122,17 +130,26 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
      * Requests a single permission from the System. If the permission is allowed, then the permission is added to
      * the permissions map
      *
-     * @param permission  the permission to request
+     * @param permissions the permissions to request
      * @param requestCode the associated request code
      * @return whether the permission has already been granted (>0) or has been requested (0)
      */
-    public int requestPermission(String permission, final int requestCode) {
-        // return 0 if the permissions have yet to be granted (i.e. need to be requested)
-        if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{permission}, requestCode);
-            return 0;
-        } else // return number > 0 if the permissions have already been granted
+    public int requestPermission(String[] permissions, final int requestCode) {
+        // create a list of non-granted permissions
+        ArrayList<String> permissionList = new ArrayList<>();
+        for (String permission : permissions)
+            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED)
+                permissionList.add(permission);
+
+        // return number > 0 if the permissions have already been granted
+        if (permissionList.size() == 0)
             return 1;
+        else { // return 0 if the permissions have yet to be granted (i.e. need to be requested)
+            String[] permissionsToRequest = new String[permissionList.size()];
+            permissionsToRequest = permissionList.toArray(permissionsToRequest);
+            ActivityCompat.requestPermissions(this, permissionsToRequest, requestCode);
+            return 0;
+        }
     }
 
     /**
@@ -148,6 +165,7 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
 
     /**
      * Processes the results of Permission Requests. Permissions are replaced / added as per each permission request. The Activity is Initialized if
+     * all permissions have been granted, and exits otherwise
      *
      * @param requestCode  the associated permission request code
      * @param permissions  the permissions requested
@@ -167,14 +185,18 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
                 getPermissions().put(permissions[i], grantResults[i]);
         }
 
-        // if SMS access has been granted, initialize the relevant components in the activity
-        if (getPermissions().containsKey(Manifest.permission.READ_SMS) &&
-                getPermissions().get(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED) {
-            initializeActivity();
-        } else {
-            Toast.makeText(getApplicationContext(), "Access to SMS Message must be allowed to use this application", Toast.LENGTH_LONG).show();
-            finish();
+        // check the access status for each of the above permissions
+        for (int i = 0; i < permissions.length; i++) {
+            // if any of the permissions have been declined, present a message and finish (exit the application)
+            if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                Toast.makeText(getApplicationContext(), "Viewing and Sending SMS Messages must be allowed to use this application", Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
         }
+
+        // if all permissions have been granted, continue with activity setup
+        initializeActivity();
     }
 
     /**
@@ -187,22 +209,48 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
     @Override
     public void onGyroChange(float x, float y, float z) {
 
-        degrees += y * (10000.0 / NORM);
-        float newTransX = BASE - degrees * SENSITIVITY;
+        double change = y * (10000.0 / NORM);
+        degrees += change;
+        float newTransX = -BASE + degrees * SENSITIVITY;
 
-        if (newTransX >= 5f && newTransX <= BASE - 5f)
+        if (newTransX >= -BASE && newTransX <= 0)
             gyroScreenView.setTranslationX(newTransX);
-        else if (newTransX <= 5f && gyroScreenView.getTranslationX() != 0)
+        else if (newTransX < -BASE && gyroScreenView.getTranslationX() != -BASE) {
+            degrees -= change;
+            gyroScreenView.setTranslationX(-BASE);
+        } else if (newTransX >= 0 && gyroScreenView.getTranslationX() != 0) {
+            degrees -= change;
             gyroScreenView.setTranslationX(0);
-        else if (newTransX >= BASE - 5f && gyroScreenView.getTranslationX() != BASE)
-            gyroScreenView.setTranslationX(BASE);
+        }
     }
 
     @Override
     public void OnRequestOpenConversationView(String conversationIdentity) {
         Intent i = new Intent(this, ConversationActivity.class);
         i.putExtra("conversation_identity", conversationIdentity);
-        startActivity(i);
+        // get the address associated with the conversation identity
+        String address = getConversationController().onAddressRequest(conversationIdentity);
+        i.putExtra("address", address);
+        startActivityForResult(i, CONV_ACTIV_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        // check if the request code is equal to the conversation activity request code
+        if (requestCode == CONV_ACTIV_REQUEST_CODE) {
+
+            ConversationList cv = new ConversationList(new ArrayList<Conversation>(), getConversationController());
+            ArrayList<String> addresses = getSmsManager().getSMSAddressList(SMSURI.INBOX_URI, SMSURI.SENT_URI);
+            ArrayList<String> identities = cv.retrieveIdentities(addresses);
+
+            // update identity adapter dataset (notify subscribed listeners that the dataset has changed)
+            getIdentityAdapter().setIdentityList(identities);
+            getConversationIdentityRV().swapAdapter(getIdentityAdapter(), false);
+
+            Toast.makeText(getApplicationContext(), "Updated", Toast.LENGTH_LONG).show();
+        }
     }
 
     /**
@@ -216,11 +264,43 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         this.permissions = permissions;
     }
 
+    public RecyclerView getConversationIdentityRV() {
+        return conversationIdentityRV;
+    }
+
+    public void setConversationIdentityRV(RecyclerView conversationIdentityRV) {
+        this.conversationIdentityRV = conversationIdentityRV;
+    }
+
+    public View getGyroScreenView() {
+        return gyroScreenView;
+    }
+
+    public void setGyroScreenView(View gyroScreenView) {
+        this.gyroScreenView = gyroScreenView;
+    }
+
+    public SMSManager getSmsManager() {
+        return smsManager;
+    }
+
+    public void setSmsManager(SMSManager smsManager) {
+        this.smsManager = smsManager;
+    }
+
     public ConversationController getConversationController() {
         return conversationController;
     }
 
     public void setConversationController(ConversationController conversationController) {
         this.conversationController = conversationController;
+    }
+
+    public IdentityAdapter getIdentityAdapter() {
+        return identityAdapter;
+    }
+
+    public void setIdentityAdapter(IdentityAdapter identityAdapter) {
+        this.identityAdapter = identityAdapter;
     }
 }

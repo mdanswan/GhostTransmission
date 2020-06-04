@@ -1,26 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context=".Main.ConversationActivity">
 
-    <EditText
-        android:id="@+id/conversation_identity_edittext"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/colorSecondary"
-        android:textColor="@color/colorForeground"/>
+        android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/save_imagebutton"
+            android:layout_width="50dp"
+            android:layout_height="match_parent"
+            android:background="@color/colorSecondary"
+            android:rotation="180"
+            android:scaleType="fitCenter"
+            android:src="@drawable/save_icon" />
+
+        <EditText
+            android:id="@+id/conversation_identity_edittext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:background="@color/colorSecondary"
+            android:fontFamily="sans-serif"
+            android:textAlignment="center"
+            android:textColor="@color/colorForeground"
+            android:textSize="12pt"
+            android:textStyle="bold" />
+
+    </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/conversation_recyclerview"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:scrollbars="vertical"
         android:layout_weight="1"
-        android:background="@color/colorBackground"/>
+        android:background="@color/colorBackground"
+        android:scrollbars="vertical" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -32,13 +52,23 @@
             android:id="@+id/message_edittext"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1" />
+            android:layout_gravity="center"
+            android:layout_weight="1"
+            android:fontFamily="sans-serif"
+            android:inputType="textMultiLine"
+            android:textAlignment="center"
+            android:textColor="@color/colorForeground"
+            android:textSize="8pt"
+            android:textStyle="bold" />
 
         <ImageButton
-            android:id="@+id/send_message_edittext"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:background=""/>
+            android:id="@+id/send_message_imagebutton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:background="@color/colorBackground"
+            android:padding="4dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/send_icon" />
 
     </LinearLayout>
 

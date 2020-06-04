@@ -1,7 +1,5 @@
 package com.deakin.ghosttransmission.Model;
 
-import android.content.Intent;
-
 import androidx.annotation.NonNull;
 
 import java.time.Instant;
@@ -82,6 +80,6 @@ public class SMS {
     }
 
     public void setRead(String read) {
-        this.read = read.equals("1") ? "Read" : "";
+        this.read = read.equals("1") ? "Read" : "Unread";
     }
 }

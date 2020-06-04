@@ -8,6 +8,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.deakin.ghosttransmission.Model.Conversation;
+import com.deakin.ghosttransmission.Model.ConversationList;
 import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.R;
 
@@ -73,15 +75,15 @@ class SMSViewHolder extends RecyclerView.ViewHolder {
     }
 };
 
-public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
+public class ConversationAdapter extends RecyclerView.Adapter<SMSViewHolder> {
 
     /**
      * Instance Variables
      */
-    private ArrayList<SMS> smsList = null;
+    private Conversation conversation = null;
 
-    public SMSAdapter(@NonNull ArrayList<SMS> smsList) {
-        setSmsList(smsList);
+    public ConversationAdapter(@NonNull Conversation conversation) {
+        setConversation(conversation);
     }
 
     @NonNull
@@ -95,8 +97,8 @@ public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull SMSViewHolder holder, int position) {
 
-        // get the current SMS model from the sms dataset
-        SMS sms = getSmsList().get(position);
+        // get the current SMS model from the conversation dataset
+        SMS sms = getConversation().getMergedList().get(position);
 
         // set the content of each view in the SMS View Layout
         TextView phonenoTV = holder.getPhonenoTV();
@@ -112,17 +114,17 @@ public class SMSAdapter extends RecyclerView.Adapter<SMSViewHolder> {
 
     @Override
     public int getItemCount() {
-        return getSmsList().size();
+        return getConversation().getConversationSize();
     }
 
     /**
      * Getters and Setters
      */
-    public ArrayList<SMS> getSmsList() {
-        return smsList;
+    public Conversation getConversation() {
+        return conversation;
     }
 
-    public void setSmsList(ArrayList<SMS> smsList) {
-        this.smsList = smsList;
+    public void setConversation(Conversation conversation) {
+        this.conversation = conversation;
     }
 }

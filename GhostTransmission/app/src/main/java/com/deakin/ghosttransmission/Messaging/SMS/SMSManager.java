@@ -20,9 +20,12 @@ public class SMSManager {
 
     /**
      * Constructor
+     *
+     * @param contentResolver content provider for accessing SMS content
      */
     public SMSManager(ContentResolver contentResolver) {
         setContentResolver(contentResolver);
+        setConversations(new ConversationList()); // initialize for further use
     }
 
     /**
@@ -61,6 +64,7 @@ public class SMSManager {
     public Conversation retrieveConversation(SMSURI from, SMSURI to, String address, int limit) {
         SMSReader smsReader = new SMSReader(getContentResolver());
         Conversation conversation = smsReader.readSMS(from, to, address, limit);
+        getConversations().add(conversation);
         return conversation;
     }
 
@@ -78,8 +82,15 @@ public class SMSManager {
         return conversationAddressList;
     }
 
+    /**
+     * Retrieves the associated address list for both from and to message lines
+     *
+     * @param from from SMSURI
+     * @param to   to SMSURI
+     * @return address list
+     */
     public ArrayList<String> getSMSAddressList(SMSURI from, SMSURI to) {
-        ArrayList<String> smsAddresses = new ArrayList<>();
+        ArrayList<String> smsAddresses;
 
         SMSReader smsReader = new SMSReader(getContentResolver());
         smsAddresses = smsReader.readDistinctSMSAddresses(from, to);
@@ -93,10 +104,14 @@ public class SMSManager {
      * @param sms SMS Model with address, and message
      * @return whether the SMS was successfully sent
      */
-    private boolean sendSMS(SMS sms) {
-        SMSWriter smsWriter = new SMSWriter();
-        boolean result = smsWriter.writeSMS(sms);
-        return result;
+    public boolean sendSMS(SMS sms) {
+        try {
+            SMSWriter smsWriter = new SMSWriter();
+            boolean result = smsWriter.writeSMS(sms);
+            return true;
+        } catch (IllegalArgumentException illArgExc) {
+            return false;
+        }
     }
 
     /**

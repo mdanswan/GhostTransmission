@@ -56,7 +56,7 @@ public class SMSReader {
     }
 
     /**
-     * Reads a both sides of a specific Conversation
+     * Reads both sides of a specific Conversation
      *
      * @param from    from SMSURI
      * @param to      to SMSURI
@@ -68,6 +68,7 @@ public class SMSReader {
         Conversation c = new Conversation();
         c.setFromSmsList(readSMSListWithParams(from, address, limit));
         c.setToSmsList(readSMSListWithParams(to, address, limit));
+        c.setFromAddress(address);
         return c;
     }
 
@@ -79,39 +80,42 @@ public class SMSReader {
                 SMS_COLS_DISTINCT,
                 "",
                 null,
-                SMS_SORT_ORDER);
+                "address ASC");
 
         Cursor c2 = getContentResolver().query(Uri.parse(
                 to.getUri()),
                 SMS_COLS_DISTINCT,
                 "",
                 null,
-                SMS_SORT_ORDER);
+                "address ASC");
 
         // check if we can move to the first place in the c1 and c2 Cursors
-        boolean isC1Empty = c1.moveToFirst();
-        boolean isC2Empty = c2.moveToFirst();
+        boolean isC1Empty = !c1.moveToFirst();
+        boolean isC2Empty = !c2.moveToFirst();
 
-        if (!isC1Empty && !isC2Empty)
+        if (isC1Empty && isC2Empty)
             return distinctSMSAddresses;
 
-        do {
-            distinctSMSAddresses.add(c1.getString(c1.getColumnIndex("address")));
-        } while (c1.moveToNext());
 
+        // add items to distinct addresses by moving the cursors and adding until the cursors hold the same value
         do {
-            boolean add = true;
-            for (int i = 0; i < distinctSMSAddresses.size(); i++) {
-                int col = c2.getColumnIndex("address");
-                String str = c2.getString(col);
-                if (distinctSMSAddresses.get(i).equals(str)) {
-                    add = false;
-                    break;
-                }
+            String c1Address = c1.getString(c1.getColumnIndex("address"));
+            String c2Address = c2.getString(c2.getColumnIndex("address"));
+
+            int compareResult = c1Address.compareTo(c2Address);
+
+            if (compareResult > 0) { // c2 comes first: add c2 address and move c2 cursor forward
+                distinctSMSAddresses.add(c2Address);
+                c2.moveToNext();
+            } else if (compareResult < 0) { // c1 comes first: add c1 address and move c1 cursor forward
+                distinctSMSAddresses.add(c1Address);
+                c1.moveToNext();
+            } else { // same: move both cursors whilst adding only one instance of the address
+                distinctSMSAddresses.add(c1Address);
+                c1.moveToNext();
+                c2.moveToNext();
             }
-            if (add)
-                distinctSMSAddresses.add(c2.getString(c2.getColumnIndex("address")));
-        } while (c2.moveToNext());
+        } while (!c1.isAfterLast() && !c2.isAfterLast());
 
         c1.close();
         c2.close();
@@ -176,9 +180,9 @@ public class SMSReader {
         Cursor c = getContentResolver().query(Uri.parse(
                 smsuri.getUri()),
                 SMS_COLS,
-                "WHERE address = '?'",
+                "address LIKE ?",
                 new String[]{address},
-                SMS_SORT_ORDER + " limit " + limit);
+                "date DESC LIMIT " + limit);
 
         if (!c.moveToFirst())
             return smsList;

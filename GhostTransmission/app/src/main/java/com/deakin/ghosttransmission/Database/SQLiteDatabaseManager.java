@@ -18,7 +18,7 @@ public class SQLiteDatabaseManager extends SQLiteOpenHelper {
      * Constants
      */
     // VERSION
-    private final int VERSION = 3;
+    private final int VERSION = 1;
 
     // DATABASE
     private final String DATABASE_NAME = "GT";
@@ -71,7 +71,7 @@ public class SQLiteDatabaseManager extends SQLiteOpenHelper {
     @Override
     public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // recreate database
-        onCreate(db);
+        onUpgrade(db, oldVersion, newVersion);
     }
 
     /**
@@ -84,24 +84,23 @@ public class SQLiteDatabaseManager extends SQLiteOpenHelper {
      */
     public boolean execSQL(String command, SQLiteDatabase db) {
         // attempt to execute the provided command
-
         db.beginTransaction();
         try {
             db.execSQL(command);
             db.setTransactionSuccessful();
-            return true;
         } catch (SQLException sqlExc) {
             Toast.makeText(getContext(), "Application error, please restart, and try again", Toast.LENGTH_LONG).show();
             return false;
         } finally {
             db.endTransaction();
         }
+        return true;
     }
 
     /**
-     * Retrieves and/or create a new Identity for the given address
+     * Retrieves and/or creates a new Identity for the given address
      *
-     * @param address address to find Identity of
+     * @param address address to find identity of
      * @return found / created Identity
      */
     public String getIdentity(String address) {
@@ -120,16 +119,53 @@ public class SQLiteDatabaseManager extends SQLiteOpenHelper {
             identity = IdentityJuggler.juggleDropIdentity(address);
 
             // update database with new identity for given address
-            ContentValues cv = new ContentValues();
-            cv.put(TABLE_IDENTITIES_KEY_ADD, address);
-            cv.put(TABLE_IDENTITIES_VALUE_ID, identity);
             SQLiteDatabase db = getWritableDatabase();
-            long res = db.insert(TABLE_IDENTITIES, null, cv);
-            db.close();
+            String command = String.format(Locale.getDefault(), "INSERT INTO %s VALUES (\"%s\", \"%s\");", TABLE_IDENTITIES, address, identity);
+            execSQL(command, db);
         }
 
         c.close();
 
+        return identity;
+    }
+
+    /**
+     * Retrieves the associated Address for a given Identity
+     *
+     * @param identity identity to find address of
+     * @return found address
+     */
+    public String getAddress(String identity) {
+        // query the database for the Identity of the given address
+        Cursor c = getReadableDatabase().query(TABLE_IDENTITIES,
+                new String[]{TABLE_IDENTITIES_KEY_ADD},
+                "id = ?", new String[]{identity},
+                "", "", "", "");
+
+        String address = "";
+
+        // attempt to move to the first item in the Cursor, and retrieve the associated address
+        if (c.moveToFirst())
+            address = c.getString(c.getColumnIndex(TABLE_IDENTITIES_KEY_ADD));
+
+        c.close();
+
+        // modify the address to meet the Content Provider address format (+61)
+        address = address.replaceFirst("[0]", "+61");
+
+        return address;
+    }
+
+    public String updateIdentity(String address, String newIdentity) {
+        ContentValues cv = new ContentValues();
+        cv.put(TABLE_IDENTITIES_VALUE_ID, newIdentity);
+
+        String command = String.format(Locale.getDefault(), "UPDATE %s SET %s = '%s' WHERE %s = '%s'",
+                TABLE_IDENTITIES, TABLE_IDENTITIES_VALUE_ID, newIdentity, TABLE_IDENTITIES_KEY_ADD, address);
+        execSQL(command, getWritableDatabase());
+
+        // retrieve the new value of the identity from the database (ensuring the value was updated)
+        String identity = getIdentity(address);
         return identity;
     }
 
