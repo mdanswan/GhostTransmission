@@ -9,11 +9,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.deakin.ghosttransmission.Model.Conversation;
-import com.deakin.ghosttransmission.Model.ConversationList;
 import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.R;
-
-import java.util.ArrayList;
 
 class SMSViewHolder extends RecyclerView.ViewHolder {
 

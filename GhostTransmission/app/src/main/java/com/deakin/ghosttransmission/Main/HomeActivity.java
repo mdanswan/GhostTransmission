@@ -1,5 +1,14 @@
 package com.deakin.ghosttransmission.Main;
 
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.hardware.SensorManager;
+import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.view.View;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
@@ -7,16 +16,6 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
-import android.Manifest;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.hardware.SensorManager;
-import android.os.Bundle;
-import android.util.DisplayMetrics;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
 import com.deakin.ghosttransmission.Adapter.IdentityAdapter;
 import com.deakin.ghosttransmission.Controller.ConversationController;
@@ -32,7 +31,6 @@ import com.deakin.ghosttransmission.R;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 public class HomeActivity extends AppCompatActivity implements GyroscopeListener, ViewListener {
 

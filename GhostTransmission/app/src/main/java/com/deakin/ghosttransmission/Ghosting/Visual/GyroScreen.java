@@ -4,11 +4,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.util.Log;
 
 import com.deakin.ghosttransmission.Listener.GyroscopeListener;
-
-import java.math.BigDecimal;
 
 public class GyroScreen {
 
@@ -26,7 +23,7 @@ public class GyroScreen {
     /**
      * Constructor
      *
-     * @param sensorManager SensorManager instance
+     * @param sensorManager     SensorManager instance
      * @param gyroscopeListener Gyroscope Listener for Updating UI
      */
     public GyroScreen(SensorManager sensorManager, GyroscopeListener gyroscopeListener) {
