@@ -49,6 +49,15 @@ public class SMSManager {
         setConversations(conversations);
     }
 
+    /**
+     * Retrieves a single Conversation using the given parameters
+     *
+     * @param from    from SMSURI
+     * @param to      to SMSURI
+     * @param address address of participant
+     * @param limit   number of messages to return (from both sides - from and to)
+     * @return conversation
+     */
     public Conversation retrieveConversation(SMSURI from, SMSURI to, String address, int limit) {
         SMSReader smsReader = new SMSReader(getContentResolver());
         Conversation conversation = smsReader.readSMS(from, to, address, limit);
@@ -67,6 +76,15 @@ public class SMSManager {
             conversationAddressList.add(c.getFromAddress());
 
         return conversationAddressList;
+    }
+
+    public ArrayList<String> getSMSAddressList(SMSURI from, SMSURI to) {
+        ArrayList<String> smsAddresses = new ArrayList<>();
+
+        SMSReader smsReader = new SMSReader(getContentResolver());
+        smsAddresses = smsReader.readDistinctSMSAddresses(from, to);
+
+        return smsAddresses;
     }
 
     /**

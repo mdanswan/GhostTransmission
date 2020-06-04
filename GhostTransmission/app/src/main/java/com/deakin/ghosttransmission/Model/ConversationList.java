@@ -44,18 +44,19 @@ public class ConversationList extends ArrayList<Conversation> {
      *
      * @returns whether the update was successful
      */
-    public boolean updateIdentities() {
+    public ArrayList<String> retrieveIdentities(ArrayList<String> addresses) {
+        ArrayList<String> addressIdentities = new ArrayList<>();
+
         // check if the conversation controller is null
         if (getConversationController() == null)
-            return false;
+            return addressIdentities;
 
-        // update the Identity of all internal Conversations
-        for (int i = 0; i < size(); i++) {
-            Conversation c = get(i);
-            c.setIdentity(getConversationController().OnIdentityRequest(c.getFromAddress()));
+        // retrieve the identity of all addresses
+        for (int i = 0; i < addresses.size(); i++) {
+            addressIdentities.add(getConversationController().OnIdentityRequest(addresses.get(i)));
         }
 
-        return true;
+        return addressIdentities;
     }
 
     /**

@@ -3,7 +3,6 @@ package com.deakin.ghosttransmission.Messaging.SMS;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.nfc.tech.Ndef;
 
 import com.deakin.ghosttransmission.Model.Conversation;
 import com.deakin.ghosttransmission.Model.ConversationList;
@@ -21,6 +20,7 @@ public class SMSReader {
      * Constants
      */
     private final String[] SMS_COLS = new String[]{"address", "date", "body", "read"};
+    private final String[] SMS_COLS_DISTINCT = new String[]{"DISTINCT address"};
     private final int DEFAULT_LIM = 100;
     private final String SMS_SORT_ORDER = "date DESC" + " LIMIT " + DEFAULT_LIM;
     private final int MAX_LIM = Integer.MAX_VALUE;
@@ -49,8 +49,8 @@ public class SMSReader {
      */
     public ConversationList readSMS(SMSURI from, SMSURI to) {
 
-        Map<String, ArrayList<SMS>> fromSmsListAsConversation = readSmsAsConversation(from);
-        Map<String, ArrayList<SMS>> toSmsListAsConversation = readSmsAsConversation(to);
+        Map<String, ArrayList<SMS>> fromSmsListAsConversation = readSMSAsConversation(from);
+        Map<String, ArrayList<SMS>> toSmsListAsConversation = readSMSAsConversation(to);
 
         return mergeConversations(fromSmsListAsConversation, toSmsListAsConversation);
     }
@@ -66,9 +66,57 @@ public class SMSReader {
      */
     public Conversation readSMS(SMSURI from, SMSURI to, String address, int limit) {
         Conversation c = new Conversation();
-        c.setFromSmsList(readSmsListWithParams(from, address, limit));
-        c.setToSmsList(readSmsListWithParams(to, address, limit));
+        c.setFromSmsList(readSMSListWithParams(from, address, limit));
+        c.setToSmsList(readSMSListWithParams(to, address, limit));
         return c;
+    }
+
+    public ArrayList<String> readDistinctSMSAddresses(SMSURI from, SMSURI to) {
+        ArrayList<String> distinctSMSAddresses = new ArrayList<>();
+
+        Cursor c1 = getContentResolver().query(Uri.parse(
+                from.getUri()),
+                SMS_COLS_DISTINCT,
+                "",
+                null,
+                SMS_SORT_ORDER);
+
+        Cursor c2 = getContentResolver().query(Uri.parse(
+                to.getUri()),
+                SMS_COLS_DISTINCT,
+                "",
+                null,
+                SMS_SORT_ORDER);
+
+        // check if we can move to the first place in the c1 and c2 Cursors
+        boolean isC1Empty = c1.moveToFirst();
+        boolean isC2Empty = c2.moveToFirst();
+
+        if (!isC1Empty && !isC2Empty)
+            return distinctSMSAddresses;
+
+        do {
+            distinctSMSAddresses.add(c1.getString(c1.getColumnIndex("address")));
+        } while (c1.moveToNext());
+
+        do {
+            boolean add = true;
+            for (int i = 0; i < distinctSMSAddresses.size(); i++) {
+                int col = c2.getColumnIndex("address");
+                String str = c2.getString(col);
+                if (distinctSMSAddresses.get(i).equals(str)) {
+                    add = false;
+                    break;
+                }
+            }
+            if (add)
+                distinctSMSAddresses.add(c2.getString(c2.getColumnIndex("address")));
+        } while (c2.moveToNext());
+
+        c1.close();
+        c2.close();
+
+        return distinctSMSAddresses;
     }
 
     /**
@@ -77,7 +125,7 @@ public class SMSReader {
      * @param smsuri from or to SMSURI
      * @return map of address, messages
      */
-    private Map<String, ArrayList<SMS>> readSmsAsConversation(SMSURI smsuri) {
+    private Map<String, ArrayList<SMS>> readSMSAsConversation(SMSURI smsuri) {
         Map<String, ArrayList<SMS>> conversationFromList = new HashMap<>();
 
         Cursor c = getContentResolver().query(Uri.parse(
@@ -118,7 +166,7 @@ public class SMSReader {
      * @param limit   limit of the number of rows to retrieve
      * @return a list of SMS instances
      */
-    private ArrayList<SMS> readSmsListWithParams(SMSURI smsuri, String address, int limit) {
+    private ArrayList<SMS> readSMSListWithParams(SMSURI smsuri, String address, int limit) {
         ArrayList<SMS> smsList = new ArrayList<>();
 
         // check if the given value is zero or negative, if so, replace with integer maximum
