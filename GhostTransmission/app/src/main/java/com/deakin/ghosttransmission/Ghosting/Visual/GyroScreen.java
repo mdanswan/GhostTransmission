@@ -31,7 +31,7 @@ public class GyroScreen {
         setGyroscopeListener(gyroscopeListener);
     }
 
-    public void AddGyroEventListener() {
+    public void addGyroEventListener() {
         SensorEventListener gyroEventListener = new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {

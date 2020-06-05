@@ -121,7 +121,7 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         // init GyroScreen
         SensorManager sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
         GyroScreen gyroScreen = new GyroScreen(sensorManager, this);
-        gyroScreen.AddGyroEventListener();
+        gyroScreen.addGyroEventListener();
     }
 
     /**
@@ -223,7 +223,7 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
     }
 
     @Override
-    public void OnRequestOpenConversationView(String conversationIdentity) {
+    public void onRequestOpenConversationView(String conversationIdentity) {
         Intent i = new Intent(this, ConversationActivity.class);
         i.putExtra("conversation_identity", conversationIdentity);
         // get the address associated with the conversation identity
@@ -243,7 +243,7 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
             ArrayList<String> addresses = getSmsManager().getSMSAddressList(SMSURI.INBOX_URI, SMSURI.SENT_URI);
             ArrayList<String> identities = cv.retrieveIdentities(addresses);
 
-            // update identity adapter dataset (notify subscribed listeners that the dataset has changed)
+            // update identity recycler view with updated adapter
             getIdentityAdapter().setIdentityList(identities);
             getConversationIdentityRV().swapAdapter(getIdentityAdapter(), false);
 

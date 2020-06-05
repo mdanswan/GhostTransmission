@@ -1,6 +1,5 @@
 package com.deakin.ghosttransmission.Messaging.SMS;
 
-import android.Manifest;
 import android.content.ContentResolver;
 
 import com.deakin.ghosttransmission.Model.Conversation;

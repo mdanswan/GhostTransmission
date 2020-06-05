@@ -79,7 +79,7 @@ public class IdentityAdapter extends RecyclerView.Adapter<IdentityViewHolder> {
         identityViewHolder.getIdentityButton().setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getViewListener().OnRequestOpenConversationView(identityViewHolder.getIdentityButton().getText().toString());
+                getViewListener().onRequestOpenConversationView(identityViewHolder.getIdentityButton().getText().toString());
             }
         });
         return identityViewHolder;
