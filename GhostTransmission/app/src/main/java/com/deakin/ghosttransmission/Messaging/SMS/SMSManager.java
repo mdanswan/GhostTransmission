@@ -8,6 +8,7 @@ import com.deakin.ghosttransmission.Model.SMS;
 import com.deakin.ghosttransmission.Model.SMSURI;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class SMSManager {
 
@@ -89,8 +90,8 @@ public class SMSManager {
      * @param to   to SMSURI
      * @return address list
      */
-    public ArrayList<String> getSMSAddressList(SMSURI from, SMSURI to) {
-        ArrayList<String> smsAddresses;
+    public HashMap<Integer, String> getSMSAddressList(SMSURI from, SMSURI to) {
+        HashMap<Integer, String> smsAddresses;
 
         SMSReader smsReader = new SMSReader(getContentResolver());
         smsAddresses = smsReader.readDistinctSMSAddresses(from, to);

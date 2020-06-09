@@ -12,6 +12,7 @@ import com.deakin.ghosttransmission.Model.SMSURI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class SMSReader {
@@ -20,7 +21,7 @@ public class SMSReader {
      * Constants
      */
     private final String[] SMS_COLS = new String[]{"address", "date", "body", "read"};
-    private final String[] SMS_COLS_DISTINCT = new String[]{"DISTINCT address"};
+    private final String[] SMS_COLS_DISTINCT = new String[]{"DISTINCT address, date"};
     private final int DEFAULT_LIM = 100;
     private final String SMS_SORT_ORDER = "date DESC" + " LIMIT " + DEFAULT_LIM;
     private final int MAX_LIM = Integer.MAX_VALUE;
@@ -72,22 +73,23 @@ public class SMSReader {
         return c;
     }
 
-    public ArrayList<String> readDistinctSMSAddresses(SMSURI from, SMSURI to) {
-        ArrayList<String> distinctSMSAddresses = new ArrayList<>();
+    public HashMap<Integer, String> readDistinctSMSAddresses(SMSURI from, SMSURI to) {
+        HashMap<Integer, String> distinctSMSAddresses = new HashMap<>(); // using HashSet for efficiency and distinct values
+        HashSet<String> addressHistory = new HashSet<>(); // to keep track of which address has been added as distinct
 
         Cursor c1 = getContentResolver().query(Uri.parse(
                 from.getUri()),
                 SMS_COLS_DISTINCT,
                 "",
                 null,
-                "address ASC");
+                "date DESC");
 
         Cursor c2 = getContentResolver().query(Uri.parse(
                 to.getUri()),
                 SMS_COLS_DISTINCT,
                 "",
                 null,
-                "address ASC");
+                "date DESC");
 
         // check if we can move to the first place in the c1 and c2 Cursors
         boolean isC1Empty = !c1.moveToFirst();
@@ -96,26 +98,49 @@ public class SMSReader {
         if (isC1Empty && isC2Empty)
             return distinctSMSAddresses;
 
+        boolean isC1Distinct = false, isC2Distinct = false, isC1MoreThanC2 = false;
 
-        // add items to distinct addresses by moving the cursors and adding until the cursors hold the same value
+        // add unique items to distinct addresses based on date (with index as key, and address as value)
+        int index = 0;
         do {
             String c1Address = c1.getString(c1.getColumnIndex("address"));
             String c2Address = c2.getString(c2.getColumnIndex("address"));
 
-            int compareResult = c1Address.compareTo(c2Address);
+            // check if the current addresses are already in the distinct set
+            isC1Distinct = !addressHistory.contains(c1Address);
+            isC2Distinct = !addressHistory.contains(c2Address);
 
-            if (compareResult > 0) { // c2 comes first: add c2 address and move c2 cursor forward
-                distinctSMSAddresses.add(c2Address);
+            // if both current addresses are not distinct, begin the loop again
+            if (!isC1Distinct && !isC2Distinct) {
+                c1.moveToNext();
                 c2.moveToNext();
-            } else if (compareResult < 0) { // c1 comes first: add c1 address and move c1 cursor forward
-                distinctSMSAddresses.add(c1Address);
+                continue;
+            }
+
+            // get the data of the current addresses
+            long c1Date = c1.getLong(c1.getColumnIndex("date"));
+            long c2Date = c2.getLong(c2.getColumnIndex("date"));
+
+            // compare c1 date to c2 date
+            isC1MoreThanC2 = (c1Date > c2Date);
+
+            if (isC1Distinct && isC1MoreThanC2) {
+                distinctSMSAddresses.put(index++, c1Address);
+                addressHistory.add(c1Address);
                 c1.moveToNext();
-            } else { // same: move both cursors whilst adding only one instance of the address
-                distinctSMSAddresses.add(c1Address);
+            } else if (!isC1Distinct) {
                 c1.moveToNext();
+            }
+
+            if (isC2Distinct && !isC1MoreThanC2) {
+                distinctSMSAddresses.put(index++, c2Address);
+                addressHistory.add(c2Address);
+                c2.moveToNext();
+            } else if (!isC2Distinct) {
                 c2.moveToNext();
             }
-        } while (!c1.isAfterLast() && !c2.isAfterLast());
+        }
+        while (!c1.isAfterLast() && !c2.isAfterLast());
 
         c1.close();
         c2.close();
@@ -180,7 +205,7 @@ public class SMSReader {
         Cursor c = getContentResolver().query(Uri.parse(
                 smsuri.getUri()),
                 SMS_COLS,
-                "address LIKE ?",
+                "address = ?",
                 new String[]{address},
                 "date DESC LIMIT " + limit);
 
@@ -208,7 +233,8 @@ public class SMSReader {
      * @param toSmsList   to SMS list
      * @return list of Conversations
      */
-    private ConversationList mergeConversations(Map<String, ArrayList<SMS>> fromSmsList, Map<String, ArrayList<SMS>> toSmsList) {
+    private ConversationList mergeConversations
+    (Map<String, ArrayList<SMS>> fromSmsList, Map<String, ArrayList<SMS>> toSmsList) {
 
         ConversationList conversations = new ConversationList();
 

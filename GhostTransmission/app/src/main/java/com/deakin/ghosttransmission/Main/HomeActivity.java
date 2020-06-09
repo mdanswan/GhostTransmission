@@ -90,12 +90,9 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         // init controllers
         setConversationController(new ConversationController(getApplicationContext()));
 
-        // read identity list
-        ConversationList cv = new ConversationList(new ArrayList<Conversation>(), getConversationController());
+        // create sms manager instance
         SMSManager smsManager = new SMSManager(getContentResolver());
         setSmsManager(smsManager);
-        ArrayList<String> addresses = smsManager.getSMSAddressList(SMSURI.INBOX_URI, SMSURI.SENT_URI);
-        ArrayList<String> identities = cv.retrieveIdentities(addresses);
 
         // init conversation identity recycler view
         conversationIdentityRV = findViewById(R.id.conversation_identity_recyclerview);
@@ -104,7 +101,7 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         conversationIdentityRV.setLayoutManager(new LinearLayoutManager(getApplicationContext()));
 
         // set adapter for identities
-        setIdentityAdapter(new IdentityAdapter(identities, this));
+        setIdentityAdapter(new IdentityAdapter(getUpdatedIdentityList(), this));
 
         // set main recycler view adapter as the one above
         conversationIdentityRV.setAdapter(identityAdapter);
@@ -148,6 +145,19 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
             ActivityCompat.requestPermissions(this, permissionsToRequest, requestCode);
             return 0;
         }
+    }
+
+    /**
+     * Retrieves an updates list of Identities from the database
+     *
+     * @return new identity list
+     */
+    public ArrayList<String> getUpdatedIdentityList() {
+        ConversationList cv = new ConversationList(new ArrayList<Conversation>(), getConversationController());
+        HashMap<Integer, String> addresses = getSmsManager().getSMSAddressList(SMSURI.INBOX_URI, SMSURI.SENT_URI);
+        HashMap<Integer, String> identities = cv.retrieveIdentities(addresses);
+        ArrayList<String> identitesAL = new ArrayList<>(identities.values());
+        return identitesAL;
     }
 
     /**
@@ -222,6 +232,11 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         }
     }
 
+    /**
+     * Change the main window to show the Conversation Activity with the given Identity
+     *
+     * @param conversationIdentity conversation identity
+     */
     @Override
     public void onRequestOpenConversationView(String conversationIdentity) {
         Intent i = new Intent(this, ConversationActivity.class);
@@ -232,6 +247,13 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         startActivityForResult(i, CONV_ACTIV_REQUEST_CODE);
     }
 
+    /**
+     * Updates the Identity Adapter when the Conversation Activity finalises
+     *
+     * @param requestCode request code when th Activity was started
+     * @param resultCode  resulting code from Activity
+     * @param data        intent extra data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -239,12 +261,8 @@ public class HomeActivity extends AppCompatActivity implements GyroscopeListener
         // check if the request code is equal to the conversation activity request code
         if (requestCode == CONV_ACTIV_REQUEST_CODE) {
 
-            ConversationList cv = new ConversationList(new ArrayList<Conversation>(), getConversationController());
-            ArrayList<String> addresses = getSmsManager().getSMSAddressList(SMSURI.INBOX_URI, SMSURI.SENT_URI);
-            ArrayList<String> identities = cv.retrieveIdentities(addresses);
-
             // update identity recycler view with updated adapter
-            getIdentityAdapter().setIdentityList(identities);
+            getIdentityAdapter().setIdentityList(getUpdatedIdentityList());
             getConversationIdentityRV().swapAdapter(getIdentityAdapter(), false);
 
             Toast.makeText(getApplicationContext(), "Updated", Toast.LENGTH_LONG).show();

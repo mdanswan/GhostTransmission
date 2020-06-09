@@ -151,7 +151,8 @@ public class SQLiteDatabaseManager extends SQLiteOpenHelper {
         c.close();
 
         // modify the address to meet the Content Provider address format (+61)
-        address = address.replaceFirst("[0]", "+61");
+        if (!address.startsWith("+61"))
+            address = address.replaceFirst("[0]", "+61");
 
         return address;
     }

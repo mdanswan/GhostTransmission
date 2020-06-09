@@ -3,6 +3,7 @@ package com.deakin.ghosttransmission.Model;
 import com.deakin.ghosttransmission.Controller.ConversationController;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ConversationList extends ArrayList<Conversation> {
 
@@ -41,17 +42,16 @@ public class ConversationList extends ArrayList<Conversation> {
     /**
      * Retrieves the Identities of the given addresses
      */
-    public ArrayList<String> retrieveIdentities(ArrayList<String> addresses) {
-        ArrayList<String> addressIdentities = new ArrayList<>();
+    public HashMap<Integer, String> retrieveIdentities(HashMap<Integer, String> addresses) {
+        HashMap<Integer, String> addressIdentities = new HashMap<>();
 
         // check if the conversation controller is null
         if (getConversationController() == null)
             return addressIdentities;
 
         // retrieve the identity of all addresses
-        for (int i = 0; i < addresses.size(); i++) {
-            addressIdentities.add(getConversationController().onIdentityRequest(addresses.get(i)));
-        }
+        for (int i = 0; i < addresses.size(); i++)
+            addressIdentities.put(i, getConversationController().onIdentityRequest(addresses.get(i)));
 
         return addressIdentities;
     }
@@ -61,13 +61,13 @@ public class ConversationList extends ArrayList<Conversation> {
      */
     public void updateIdentities() {
         // get a list of the internal conversation addresses
-        ArrayList<String> addresses = new ArrayList<>();
+        HashMap<Integer, String> addresses = new HashMap<>();
         for (int i = 0; i < size(); i++)
-            addresses.add(get(i).getFromAddress());
+            addresses.put(i, get(i).getFromAddress());
 
         // retrieve and set the identities of the internal addresses
-        ArrayList<String> identities = retrieveIdentities(addresses);
-        for (int i = 0; i < size(); i++)
+        HashMap<Integer, String> identities = retrieveIdentities(addresses);
+        for (int i = 0; i < identities.size(); i++)
             get(i).setIdentity(identities.get(i));
     }
 
